@@ -1,4 +1,9 @@
 [project]
 name = "doctalk-api"
 version = "0.0.1"
-dependencies = ["fastapi", "uvicorn[standard]", "pytest"]
+requires-python = ">=3.10"
+dependencies = ["fastapi", "uvicorn[standard]", "pytest", "httpx", "pydantic"]
+
+[tool.pytest.ini_options]
+pythonpath = ["app"]
+addopts = "-q"
