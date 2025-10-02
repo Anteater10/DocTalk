@@ -11,9 +11,16 @@ const CATEGORY_COLORS = {
   measurement: "#ffadad",
 };
 
+// extra style when something is NEGATED
+const NEGATED_STYLE = {
+  textDecoration: "line-through",
+  opacity: 0.6,
+  textDecorationStyle: "wavy",
+};
+
 export default function Page() {
   const [text, setText] = useState(
-    "Sample note: blood pressure was recorded. Troponin was checked in the ER."
+    "Sample note: blood pressure was recorded. Troponin was checked in the ER. No mention of pneumonia. Aspirin started."
   );
   const [spans, setSpans] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -43,14 +50,30 @@ export default function Page() {
   }
 
   return (
-    <main style={{ padding: 24, fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial" }}>
+    <main
+      style={{
+        padding: 24,
+        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
+      }}
+    >
       <h1 style={{ marginBottom: 8 }}>DocTalk</h1>
-      <p style={{ margin: 0, opacity: 0.8 }}>Sprint 1: Paste → Explain → Highlights</p>
+      <p style={{ margin: 0, opacity: 0.8 }}>
+        Sprint 1: Paste → Explain → Highlights
+      </p>
 
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 16,
+          marginTop: 16,
+        }}
+      >
         {/* Left: input */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <label htmlFor="note" style={{ fontWeight: 600 }}>Paste clinical text</label>
+          <label htmlFor="note" style={{ fontWeight: 600 }}>
+            Paste clinical text
+          </label>
           <textarea
             id="note"
             rows={10}
@@ -83,13 +106,12 @@ export default function Page() {
               {loading ? "Explaining…" : "Explain"}
             </button>
             <small style={{ opacity: 0.7 }}>
-              Tip: Include the word “troponin” to see a different highlight from the stub.
+              Tip: Include the word “troponin” or “pneumonia” to see
+              highlights. Try “No mention of troponin” for negation.
             </small>
           </div>
           {error && (
-            <div style={{ marginTop: 8, color: "#ff6b6b" }}>
-              {error}
-            </div>
+            <div style={{ marginTop: 8, color: "#ff6b6b" }}>{error}</div>
           )}
         </div>
 
@@ -111,9 +133,23 @@ export default function Page() {
           </div>
 
           {/* Legend */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              marginTop: 8,
+            }}
+          >
             {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
-              <span key={cat} style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+              <span
+                key={cat}
+                style={{
+                  display: "inline-flex",
+                  gap: 8,
+                  alignItems: "center",
+                }}
+              >
                 <span
                   style={{
                     display: "inline-block",
@@ -140,7 +176,10 @@ function renderHighlighted(text, spans) {
   if (!Array.isArray(spans) || spans.length === 0) return <span>{text}</span>;
 
   // sort by start asc, longer spans first in case of ties
-  const sorted = [...spans].sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+  const sorted = [...spans].sort(
+    (a, b) =>
+      a.start - b.start || (b.end - b.start) - (a.end - a.start)
+  );
   const pieces = [];
   let cursor = 0;
 
@@ -149,13 +188,20 @@ function renderHighlighted(text, spans) {
     const start = Math.max(0, s.start);
     const end = Math.min(text.length - 1, s.end); // inclusive
 
-    if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= text.length) {
+    if (
+      Number.isNaN(start) ||
+      Number.isNaN(end) ||
+      start > end ||
+      start >= text.length
+    ) {
       continue; // skip bad spans safely
     }
 
     // gap before highlight
     if (cursor < start) {
-      pieces.push(<span key={`g-${cursor}-${start}`}>{text.slice(cursor, start)}</span>);
+      pieces.push(
+        <span key={`g-${cursor}-${start}`}>{text.slice(cursor, start)}</span>
+      );
     }
 
     const surf = text.slice(start, end + 1);
@@ -169,6 +215,7 @@ function renderHighlighted(text, spans) {
           color: "black",
           padding: "0 2px",
           borderRadius: 4,
+          ...(s.negated ? NEGATED_STYLE : {}),
         }}
         title={tooltipFromSpan(s)}
       >
