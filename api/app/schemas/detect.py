@@ -1,5 +1,8 @@
+# DocTalk/api/app/schemas/detect.py
+
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
+from typing import Optional
 
 Category = Literal["diagnosis","procedure","medication","test","anatomy","measurement"]
 
@@ -17,6 +20,7 @@ class Span(BaseModel):
 
 class DetectRequest(BaseModel):
     text: str
+    doc_uuid: Optional[str] = None
 
 class DetectResponse(BaseModel):
     spans: List[Span]

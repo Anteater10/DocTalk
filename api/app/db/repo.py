@@ -1,3 +1,6 @@
+# DocTalk/api/app/db/repo.py
+# DocTalk/api/app/db/repo.py
+
 from __future__ import annotations
 from pathlib import Path
 import csv
@@ -15,18 +18,14 @@ SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 DATA_DIR = Path(__file__).parents[1] / "data"
 
 def init_db() -> None:
-    """
-    Apply schema.sql and create ORM tables.
-    """
+    """Apply schema.sql and create ORM tables."""
     with engine.begin() as conn:
         if SCHEMA_PATH.exists():
             conn.execute(text(SCHEMA_PATH.read_text()))
     Base.metadata.create_all(engine)
 
 def seed() -> None:
-    """
-    Load CSV seeds into Postgres.
-    """
+    """Load CSV seeds into Postgres."""
     terms_csv = DATA_DIR / "glossary_seed.csv"
     acr_csv = DATA_DIR / "acronyms_seed.csv"
     units_csv = DATA_DIR / "units_seed.csv"
@@ -34,19 +33,25 @@ def seed() -> None:
     with Session(engine) as s:
         # ---- Terms ----
         if terms_csv.exists():
-            with terms_csv.open(newline="") as f:
+            with terms_csv.open(newline="", encoding="utf-8-sig") as f:
                 r = csv.DictReader(f)
                 for row in r:
-                    canonical = row["canonical"].strip()
-                    category = row["category"].strip()
-                    definition = (row.get("definition") or "").strip() or None
-                    why = (row.get("why") or "").strip() or None
-                    alias_val = (row.get("alias") or "").strip() or None
+                    canonical = (row.get("canonical") or "").strip()
+                    category = (row.get("category") or "").strip()
+                    if not canonical or not category:
+                        continue  # skip incomplete rows
+                    definition = ((row.get("definition") or "").strip() or None)
+                    why = ((row.get("why") or "").strip() or None)
+                    alias_val = ((row.get("alias") or "").strip() or None)
 
                     term = s.scalar(select(Term).where(Term.canonical == canonical))
                     if not term:
-                        term = Term(canonical=canonical, category=category,
-                                    definition=definition, why=why)
+                        term = Term(
+                            canonical=canonical,
+                            category=category,
+                            definition=definition,
+                            why=why,
+                        )
                         s.add(term)
                         s.flush()
 
@@ -57,31 +62,38 @@ def seed() -> None:
 
         # ---- Acronyms ----
         if acr_csv.exists():
-            with acr_csv.open(newline="") as f:
+            with acr_csv.open(newline="", encoding="utf-8-sig") as f:
                 r = csv.DictReader(f)
                 for row in r:
-                    ac = row["acronym"].strip()
-                    if not s.scalar(select(Acronym).where(Acronym.acronym == ac)):
-                        expansions = [x.strip() for x in row["expansions"].split("|")]
-                        clues = [seg.strip().split("/") for seg in row["clues"].split("|")]
+                    ac = (row.get("acronym") or "").strip()
+                    if not ac:
+                        continue
+                    expansions = [x.strip() for x in (row.get("expansions") or "").split("|") if x.strip()]
+                    clues = [seg.strip().split("/") for seg in (row.get("clues") or "").split("|") if seg.strip()]
+                    if not expansions:
+                        continue
+                    exists = s.scalar(select(Acronym).where(Acronym.acronym == ac))
+                    if not exists:
                         s.add(Acronym(acronym=ac, expansions=expansions, clues=clues))
 
         # ---- Units ----
         if units_csv.exists():
-            with units_csv.open(newline="") as f:
+            with units_csv.open(newline="", encoding="utf-8-sig") as f:
                 r = csv.DictReader(f)
                 for row in r:
-                    u = row["unit"].strip()
-                    if not s.scalar(select(Unit).where(Unit.unit == u)):
-                        s.add(Unit(unit=u,
-                                   canonical=row["canonical"].strip(),
-                                   kind=row["kind"].strip()))
+                    u = (row.get("unit") or "").strip()
+                    canonical_u = (row.get("canonical") or "").strip()
+                    kind = (row.get("kind") or "").strip()
+                    if not u or not canonical_u or not kind:
+                        continue
+                    exists = s.scalar(select(Unit).where(Unit.unit == u))
+                    if not exists:
+                        s.add(Unit(unit=u, canonical=canonical_u, kind=kind))
+
         s.commit()
 
 def alias_to_term_map() -> dict[str, dict]:
-    """
-    Return { alias_lower: {canonical, category, definition, why} }
-    """
+    """Return { alias_lower: {canonical, category, definition, why} }"""
     out: dict[str, dict] = {}
     with Session(engine) as s:
         for t in s.scalars(select(Term)).all():
