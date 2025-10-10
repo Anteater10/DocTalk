@@ -1,3 +1,5 @@
+# DocTalk/api/app/core/config.py
+
 import os
 from pydantic import BaseModel
 from dotenv import load_dotenv

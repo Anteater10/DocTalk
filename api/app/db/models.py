@@ -1,4 +1,4 @@
-# app/db/models.py
+# DocTalk/api/app/db/models.py
 
 from sqlalchemy import (
     Column, Integer, String, Text, ForeignKey, CheckConstraint, JSON, TIMESTAMP
